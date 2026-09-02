@@ -1,0 +1,71 @@
+# Publish public/ to GitHub Pages.
+#
+# This repository IS the app, and the app is a directory of files. There is no
+# server: an express process that reads files off a disk and writes them to a
+# socket is exactly what static hosting already does, and doing it ourselves
+# meant a container, a Node runtime, a dependency tree and a health endpoint
+# standing between a PNG and the person fetching it. All of that is gone.
+#
+# What replaces it costs nothing and is strictly better for this job: Pages
+# serves the same bytes from a CDN, with correct Content-Type inferred from the
+# extension and caching handled upstream, and it cannot be down in the way a
+# single container can.
+#
+# The one thing lost is the express version's Cache-Control: public, max-age=30d,
+# immutable. Pages sets its own (ten minutes), and that is not configurable.
+# It matters less than it looks — these are fetched by a CDN edge, not by every
+# recipient in turn — but if a long immutable max-age ever becomes a hard
+# requirement, that is the reason to reach for a CDN in front of this, not a
+# reason to bring the server back.
+
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# id-token is not optional: deploy-pages authenticates to the Pages service with
+# an OIDC token rather than a secret, and without it the deploy step fails with
+# a permissions error that does not mention OIDC at all.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# cancel-in-progress is deliberately false, unlike every other workflow here. A
+# cancelled deploy does not leave the previous version standing — it can leave
+# the site half-written — so a second push waits rather than interrupting.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+
+  deploy:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # enablement: true turns Pages on via the API on the first run, so this
+      # does not need a visit to the repository settings before it will work.
+      # If the token is not permitted to do that, the step fails and the setting
+      # is Settings → Pages → Source: GitHub Actions.
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      # public/ is the artifact root, so the published URLs are /logo.png rather
+      # than /public/logo.png — the same paths the express version served, which
+      # keeps any link written against it valid.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

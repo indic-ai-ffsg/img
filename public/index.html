@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Indic AI — hosted assets</title>
+
+<!--
+  This page exists so that the bare URL shows something. Static hosting answers
+  a directory with 404 unless there is an index, and a 404 on the root of an
+  asset host is indistinguishable from the host being down — which is exactly
+  the confusion the express version caused with "Cannot GET /".
+
+  Nothing here is load-bearing. The assets are the point; this is a label on the
+  box, and the file list is maintained by hand because there is no build step to
+  generate it and one asset does not justify inventing one.
+-->
+
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #595959;   /* 7.0:1 on white — AA for body text, not just large */
+    --line: #d4d4d4;
+    --code-bg: #f4f4f4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a;
+      --fg: #f2f2f2;
+      --muted: #b0b0b0;
+      --line: #33373d;
+      --code-bg: #1e2126;
+    }
+  }
+
+  body {
+    margin: 0 auto;
+    padding: 2rem 1rem 4rem;
+    max-width: 44rem;
+    background: var(--bg);
+    color: var(--fg);
+    font: 1rem/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+  p { color: var(--muted); margin: 0 0 2rem; }
+
+  figure { margin: 0 0 1rem; }
+  /* Checkerboard, because the logo has a genuinely transparent background and
+     on a plain ground there is no way to tell transparent from white. */
+  img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background-color: var(--code-bg);
+    background-image:
+      linear-gradient(45deg, var(--line) 25%, transparent 25%, transparent 75%, var(--line) 75%),
+      linear-gradient(45deg, var(--line) 25%, transparent 25%, transparent 75%, var(--line) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 8px 8px;
+  }
+  figcaption { margin-top: .5rem; color: var(--muted); font-size: .875rem; }
+
+  code {
+    padding: .15em .4em;
+    border-radius: 3px;
+    background: var(--code-bg);
+    font: .875rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    overflow-wrap: anywhere;
+  }
+  a { color: inherit; }
+  /* A focus ring that survives: never remove the outline, offset it so it is
+     visible against the element it belongs to. */
+  a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<h1>Indic AI — hosted assets</h1>
+<p>Static files, served from a repository. There is no application here.</p>
+
+<figure>
+  <img src="logo.png" width="1536" height="1024"
+       alt="The Indic AI Foundation logo.">
+  <figcaption>
+    <a href="logo.png"><code>logo.png</code></a> — 1536×1024 PNG, transparent background.
+  </figcaption>
+</figure>
+
+</body>
+</html>
