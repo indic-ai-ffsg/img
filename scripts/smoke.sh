@@ -53,6 +53,10 @@ status() {
 status /healthz 200
 status /logo.png 200
 
+# The root is a contract, not a courtesy: static-only it is Express's stock
+# "Cannot GET /", which is indistinguishable from a dead deployment.
+status / 200
+
 # A missing asset must 404 and not fall through to anything else. A mail client
 # handed 200 and a body that is not an image draws a broken image and gives the
 # reader no way to tell why.
@@ -68,6 +72,16 @@ if [ "$type" = "image/png" ]; then
     echo "ok   /logo.png content-type -> $type"
 else
     echo "FAIL /logo.png content-type -> ${type:-none}, expected image/png" >&2
+    fail=1
+fi
+
+# The listing is what makes the root worth having, so check it names a real
+# asset rather than merely returning 200 with an empty array — an ASSETS path
+# pointing somewhere wrong would do exactly that.
+if curl -s "$BASE/" | grep -q '"/logo.png"'; then
+    echo "ok   / lists /logo.png"
+else
+    echo "FAIL / did not list /logo.png: $(curl -s "$BASE/")" >&2
     fail=1
 fi
 

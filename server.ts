@@ -1,3 +1,4 @@
+import { readdir } from "node:fs/promises";
 import path from "node:path";
 import express from "express";
 
@@ -23,6 +24,28 @@ app.use(
 // nothing to point at.
 app.get("/healthz", (_req, res) => {
     res.type("text/plain").send("ok");
+});
+
+// The bare domain is what somebody pastes into a browser to check the host is
+// alive, and static-only it answers with Express's stock "Cannot GET /" — a
+// message that reads like a broken deployment when the service is perfectly
+// fine. Say what is being served instead.
+//
+// Registered after the static mount, so an index.html added to public/ would
+// still win. Read per request rather than cached at boot: the directory is a
+// handful of files, and a cached listing would be wrong for the whole life of
+// the process the first time an asset is added.
+app.get("/", async (_req, res) => {
+    const entries = await readdir(ASSETS, { withFileTypes: true });
+
+    res.json({
+        service: "indic-ai-email-assets",
+        assets: entries
+            .filter((entry) => entry.isFile())
+            .map((entry) => `/${entry.name}`)
+            .sort(),
+        health: "/healthz",
+    });
 });
 
 app.listen(PORT, "0.0.0.0", () => {
