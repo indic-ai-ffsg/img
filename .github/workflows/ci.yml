@@ -1,0 +1,84 @@
+# The email asset host: install, type-check, then start it and pull an asset
+# through it.
+#
+# This repository IS the app. img/ is its own repository, the way web/ is, so
+# this file sits at the root beside package.json and every `run` step already
+# starts in the right directory — no `defaults.run.working-directory`, and no
+# `paths` filter, because there is no other app here to filter against. From the
+# platform working tree this looks like a subdirectory; to Actions it is a root,
+# and that is the only place workflows are read from.
+#
+# One job, and no image or publish stage. There is no Dockerfile — the service
+# is `node server.ts` in front of a directory of files — and nothing deploys it
+# yet. When something does, a publish stage belongs here, gated on a protected
+# `production` environment the way the portal's is.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+
+  check:
+    name: check (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+
+    # Two versions, because this service has no build step and therefore leans
+    # on a runtime feature: Node executes server.ts by stripping the types out
+    # of it, which became default-on in 22.18. That is what package.json's
+    # engines floor records, so CI runs the floor itself — a matrix of newer
+    # versions only would leave the declared minimum completely untested — and
+    # current LTS alongside it, to catch the day stripping behaves differently
+    # further up.
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.18', 'lts/*']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      # `npm ci` rather than `npm install`: it installs exactly what the
+      # lockfile pins and fails when the two disagree, so CI cannot pass
+      # against a dependency tree nobody has.
+      - name: Install
+        run: npm ci
+
+      # tsc with noEmit — it produces nothing, and is not what runs the code.
+      # It is here for the errors, and for one above all: tsconfig sets
+      # erasableSyntaxOnly, so this step is what rejects an enum or a
+      # constructor parameter property. Without it such a file type-checks
+      # perfectly and then dies on boot with ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX.
+      - name: Type-check
+        run: npm run typecheck
+
+      # These files are fetched by mail clients over whatever connection the
+      # recipient has, once per open, for as long as the mail exists. Nothing
+      # is enforced — a threshold here would be a guess — but the number should
+      # be in front of whoever changes an asset.
+      - name: Report asset sizes
+        run: ls -lh public/
+
+      # The check the type-checker cannot make. Nothing is compiled, so the
+      # only proof that Node can run this file is Node running it, and the only
+      # proof that the assets resolve is an asset coming back. It is a script
+      # rather than inline steps so that a failure here is reproducible with one
+      # command instead of being read out of this log.
+      - name: Boot and serve
+        run: sh scripts/smoke.sh
